@@ -13,7 +13,7 @@ import (
 var ErrDir = errors.New("path is dir")
 
 //go:embed dist/*
-var assets embed.FS
+var dist embed.FS
 
 func tryRead(fs embed.FS, prefix, requestedPath string, w http.ResponseWriter) error {
 	f, err := fs.Open(path.Join(prefix, requestedPath))
@@ -34,12 +34,14 @@ func tryRead(fs embed.FS, prefix, requestedPath string, w http.ResponseWriter) e
 }
 
 func SpaHandler(w http.ResponseWriter, r *http.Request) {
-	err := tryRead(assets, "dist", r.URL.Path, w)
+	// dist/assets
+	err := tryRead(dist, "dist", r.URL.Path, w)
 	if err == nil {
 		return
 	}
 
-	err = tryRead(assets, "dist", "index.html", w)
+	// dist/index.html
+	err = tryRead(dist, "dist", "index.html", w)
 	if err != nil {
 		panic(err)
 	}
