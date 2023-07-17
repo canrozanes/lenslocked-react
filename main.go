@@ -5,15 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/canrozanes/lenslocked/controllers"
-	"github.com/canrozanes/lenslocked/templates"
-	"github.com/canrozanes/lenslocked/views"
+	"github.com/canrozanes/lenslocked/spa"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
-
-// //go:embed frontend
-// var frontend embed.FS
 
 type Resource struct {
 	Route string `json:"route"`
@@ -47,24 +42,19 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	r.Get("/", controllers.StaticHandler(
-		views.Must(views.ParseFS(templates.FS, "home.gohtml"))),
-	)
-	r.Get("/contact", controllers.StaticHandler(
-		views.Must(views.ParseFS(templates.FS, "contact.gohtml"))),
-	)
-	r.Get("/faq", controllers.StaticHandler(
-		views.Must(views.ParseFS(templates.FS, "faq.gohtml"))),
-	)
+	// r.Get("/", controllers.StaticHandler(views.Must(
+	// 	views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
 
-	r.Get("/yet-another", controllers.StaticHandler(
-		views.Must(views.ParseFS(templates.FS, "yet-another.gohtml"))),
-	)
+	// r.Get("/contact", controllers.StaticHandler(views.Must(
+	// 	views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))))
+
+	// r.Get("/faq", controllers.FAQ(
+	// 	views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
 
 	r.Mount("/api", getApiRouter())
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
-	// r.NotFound(spa.SpaHandler)
+	r.NotFound(spa.SpaHandler)
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
