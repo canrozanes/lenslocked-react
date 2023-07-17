@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/canrozanes/lenslocked/spa"
+	"github.com/canrozanes/lenslocked/controllers"
+	"github.com/canrozanes/lenslocked/templates"
+	"github.com/canrozanes/lenslocked/views"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -42,22 +44,24 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	// r.Get("/", controllers.StaticHandler(views.Must(
-	// 	views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
+	r.Get("/", controllers.StaticHandler(views.Must(
+		views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
 
-	// r.Get("/contact", controllers.StaticHandler(views.Must(
-	// 	views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))))
+	r.Get("/contact", controllers.StaticHandler(views.Must(
+		views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))))
 
-	// r.Get("/faq", controllers.FAQ(
-	// 	views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
+	r.Get("/faq", controllers.FAQ(
+		views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
 
-	// r.Get("/signup", controllers.FAQ(
-	// 	views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))))
+	usersC := controllers.Users{}
+	usersC.Templates.New = views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))
+
+	r.Get("/signup", usersC.New)
 
 	r.Mount("/api", getApiRouter())
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
-	r.NotFound(spa.SpaHandler)
+	// r.NotFound(spa.SpaHandler)
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
