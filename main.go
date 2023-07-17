@@ -51,6 +51,9 @@ func main() {
 	// r.Get("/faq", controllers.FAQ(
 	// 	views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
 
+	// r.Get("/signup", controllers.FAQ(
+	// 	views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))))
+
 	r.Mount("/api", getApiRouter())
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler

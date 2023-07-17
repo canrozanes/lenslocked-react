@@ -30,7 +30,7 @@ export default function Root() {
           <div className="space-x-4">
             <NavLink to="#">Sign in</NavLink>
             <NavLink
-              to="#"
+              to="/signup"
               className="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded"
             >
               Sign up
