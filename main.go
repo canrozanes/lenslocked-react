@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/canrozanes/lenslocked/controllers"
 	"github.com/canrozanes/lenslocked/spa"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,8 +19,12 @@ func getApiRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{ "message": "bar" }`))
 	})
+
+	var usersC controllers.Users
+	r.Post("/users", usersC.New)
 
 	r.Get("/{resource}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -41,18 +46,6 @@ func getApiRouter() chi.Router {
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-
-	// r.Get("/", controllers.StaticHandler(views.Must(
-	// 	views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
-
-	// r.Get("/contact", controllers.StaticHandler(views.Must(
-	// 	views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))))
-
-	// r.Get("/faq", controllers.FAQ(
-	// 	views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
-
-	// r.Get("/signup", controllers.FAQ(
-	// 	views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))))
 
 	r.Mount("/api", getApiRouter())
 
