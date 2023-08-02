@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/canrozanes/lenslocked/controllers"
+	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/templates"
 	"github.com/canrozanes/lenslocked/views"
 	"github.com/go-chi/chi/v5"
@@ -53,16 +54,30 @@ func main() {
 	r.Get("/faq", controllers.FAQ(
 		views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
 
-	usersC := controllers.Users{}
+	// Setup a database connection
+	cfg := models.DefaultPostgresConfig()
+	db, err := models.Open(cfg)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	userService := models.UserService{
+		DB: db,
+	}
+
+	usersC := controllers.Users{
+		UserService: &userService,
+	}
 	usersC.Templates.New = views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))
+	usersC.Templates.SignIn = views.Must(views.ParseFS(templates.FS, "signin.gohtml", "tailwind.gohtml"))
 
 	r.Get("/signup", usersC.New)
 	r.Post("/users", usersC.Create)
+	r.Get("/signin", usersC.SignIn)
+	r.Post("/signin", usersC.ProcessSignIn)
 
 	r.Mount("/api", getApiRouter())
-
-	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
-	// r.NotFound(spa.SpaHandler)
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
