@@ -8,3 +8,7 @@ export type SignupFormData = {
 export async function signUp(data: SignupFormData) {
   return jsonPost("/users", data);
 }
+
+export async function signIn(data: SignupFormData) {
+  return jsonPost("/signin", data);
+}

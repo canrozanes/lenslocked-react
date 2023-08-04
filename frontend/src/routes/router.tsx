@@ -6,6 +6,7 @@ import Faq from "routes/faq";
 import Root from "routes/root";
 import Home from "routes/home";
 import SignUp from "routes/signup";
+import SignIn from "routes/sign-in";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 export const router = createBrowserRouter([
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: "signup",
         element: <SignUp />,
+      },
+      {
+        path: "signin",
+        element: <SignIn />,
       },
       {
         path: "*",

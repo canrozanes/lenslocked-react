@@ -1,26 +1,26 @@
 import { useMutation } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { Formik, Form, Field } from "formik";
-import { SignupFormData, signUp } from "api/user";
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Formik, Form, Field } from "formik";
+import { SignupFormData, signIn } from "api/user";
+import { useState } from "react";
 
-export default function SignUp() {
-  const [searchParams] = useSearchParams();
+export default function SignIn() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Mutations
-  const { mutate } = useMutation({
-    mutationFn: signUp,
+  const mutation = useMutation({
+    mutationFn: signIn,
     onSuccess: () => {
       setIsSubmitting(false);
     },
-    onError: () => {},
+    onError: (e) => {
+      setIsSubmitting(false);
+    },
   });
 
   // computed
   const initialValues: SignupFormData = {
-    email: searchParams.get("email") ?? "",
+    email: "",
     password: "",
   };
 
@@ -28,13 +28,14 @@ export default function SignUp() {
     <div className="py-12 flex justify-center">
       <div className="px-8 py-8 bg-white rounded shadow">
         <h1 className="pt-4 pb-8 text-center text-3xl font-bold text-gray-900">
-          Start sharing your photos today!
+          Welcome back!
         </h1>
         <Formik
           initialValues={initialValues}
           onSubmit={(values) => {
+            mutation.reset();
             setIsSubmitting(true);
-            mutate(values);
+            mutation.mutate(values);
           }}
         >
           <Form>
@@ -81,14 +82,14 @@ export default function SignUp() {
                 disabled={isSubmitting}
                 type="submit"
               >
-                Sign up
+                Sign in
               </button>
             </div>
             <div className="py-2 w-full flex justify-between">
               <p className="text-xs text-gray-500">
-                Already have an account?
-                <Link to="/signin" className="underline">
-                  Sign in
+                Need an account?
+                <Link to="/signup" className="underline">
+                  Sign up
                 </Link>
               </p>
               <p className="text-xs text-gray-500">

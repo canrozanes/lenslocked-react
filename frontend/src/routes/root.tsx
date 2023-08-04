@@ -28,7 +28,7 @@ export default function Root() {
             </NavLink>
           </div>
           <div className="space-x-4">
-            <NavLink to="#">Sign in</NavLink>
+            <NavLink to="/signin">Sign in</NavLink>
             <NavLink
               to="/signup"
               className="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded"
