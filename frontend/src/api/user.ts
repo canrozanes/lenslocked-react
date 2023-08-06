@@ -1,4 +1,4 @@
-import { jsonPost } from "utils/api/fetch";
+import http from "utils/api/fetch";
 
 export type SignupFormData = {
   email: string;
@@ -6,9 +6,13 @@ export type SignupFormData = {
 };
 
 export async function signUp(data: SignupFormData) {
-  return jsonPost("/users", data);
+  return http.post("/users", data);
 }
 
 export async function signIn(data: SignupFormData) {
-  return jsonPost("/signin", data);
+  return http.post("/signin", data);
+}
+
+export async function getMe() {
+  return http.get("/users/me");
 }

@@ -1,7 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { Outlet } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "api/user";
 
 export default function Root() {
+  useQuery(["me"], getMe);
+
   return (
     <>
       <header className="bg-gradient-to-r from-blue-800 to-indigo-800 text-white">

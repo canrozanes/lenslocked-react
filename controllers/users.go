@@ -55,8 +55,6 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&data)
 
-	fmt.Println(data)
-	fmt.Println("we are past the decode")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err.Error())
@@ -65,6 +63,14 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := u.UserService.Authenticate(data.Email, data.Password)
+
+	cookie := http.Cookie{
+		Name:  "email",
+		Value: user.Email,
+		Path:  "/",
+	}
+	http.SetCookie(w, &cookie)
+
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Println(err.Error())
@@ -72,7 +78,21 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(user)
-
 	json.NewEncoder(w).Encode(userResponse{User: user})
+}
+
+func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	email, err := r.Cookie("email")
+
+	if err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "The email cookie could not be read."})
+		return
+	}
+
+	json.NewEncoder(w).Encode(userResponse{User: &models.User{
+		Email: email.Value,
+		ID:    0,
+	}})
 }

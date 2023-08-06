@@ -242,3 +242,28 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/go,macos,windows,linux,node
+
+
+# Vite gitignore
+!**/glob-import/dir/node_modules
+.DS_Store
+.idea
+*.cpuprofile
+*.local
+*.log
+/.vscode/
+/docs/.vitepress/cache
+/packages/vite/LICENSE
+dist
+dist-ssr
+explorations
+node_modules
+playground-temp
+temp
+TODOs.md
+.eslintcache
+
+# My additions
+frontend/.vite
+lenslocked
+#

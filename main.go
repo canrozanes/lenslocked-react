@@ -7,10 +7,12 @@ import (
 	"net/http"
 
 	"github.com/canrozanes/lenslocked/controllers"
+	customcsrf "github.com/canrozanes/lenslocked/csrf"
 	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/spa"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gorilla/csrf"
 )
 
 type Resource struct {
@@ -38,6 +40,7 @@ func getApiRouter(db *sql.DB) chi.Router {
 
 	r.Post("/users", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
+	r.Get("/users/me", usersC.CurrentUser)
 
 	r.Get("/{resource}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -72,6 +75,18 @@ func main() {
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
 	r.NotFound(spa.SpaHandler)
 
+	csrfKey := "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
+	csrfErrorHandler := customcsrf.NewErrorHandler()
+	csrfMw := csrf.Protect(
+		[]byte(csrfKey),
+		// TODO: Fix this before deploying
+		csrf.Secure(false),
+		csrf.ErrorHandler(csrfErrorHandler),
+	)
+
+	skipCsrf := customcsrf.NewSkipper()
+
 	fmt.Println("Starting the server on :3000...")
-	http.ListenAndServe(":3000", r)
+
+	http.ListenAndServe(":3000", skipCsrf(csrfMw(r)))
 }

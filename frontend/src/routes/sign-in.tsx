@@ -14,6 +14,7 @@ export default function SignIn() {
       setIsSubmitting(false);
     },
     onError: (e) => {
+      console.log(e);
       setIsSubmitting(false);
     },
   });

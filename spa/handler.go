@@ -3,11 +3,15 @@ package spa
 import (
 	"embed"
 	"errors"
+	"html/template"
 	"io"
+	"io/fs"
 	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
+
+	"github.com/gorilla/csrf"
 )
 
 var ErrDir = errors.New("path is dir")
@@ -33,6 +37,36 @@ func tryRead(fs embed.FS, prefix, requestedPath string, w http.ResponseWriter) e
 	return err
 }
 
+func tryReadHtml(efs embed.FS, prefix, requestedPath string, w http.ResponseWriter, r *http.Request) error {
+	if requestedPath != "index.html" {
+		return errors.New("path is not index.html")
+	}
+
+	indexHtmlBits, err := fs.ReadFile(efs, path.Join(prefix, requestedPath))
+
+	if err != nil {
+		return err
+	}
+
+	tpl, err := template.New("index.html").Parse(string(indexHtmlBits))
+
+	if err != nil {
+		return err
+	}
+
+	csrf.Token(r)
+
+	type data struct {
+		CsrfField string
+	}
+
+	d := data{CsrfField: csrf.Token(r)}
+
+	err = tpl.Execute(w, &d)
+
+	return err
+}
+
 func SpaHandler(w http.ResponseWriter, r *http.Request) {
 	// dist/assets
 	err := tryRead(dist, "dist", r.URL.Path, w)
@@ -41,7 +75,7 @@ func SpaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// dist/index.html
-	err = tryRead(dist, "dist", "index.html", w)
+	err = tryReadHtml(dist, "dist", "index.html", w, r)
 	if err != nil {
 		panic(err)
 	}
