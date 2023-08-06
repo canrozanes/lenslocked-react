@@ -42,9 +42,16 @@ func main() {
 		DB: db,
 	}
 
-	usersC := controllers.Users{
-		UserService: &userService,
+	sessionService := models.SessionService{
+		DB:            db,
+		BytesPerToken: 32,
 	}
+
+	usersC := controllers.Users{
+		UserService:    &userService,
+		SessionService: &sessionService,
+	}
+
 	usersC.Templates.New = views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))
 	usersC.Templates.SignIn = views.Must(views.ParseFS(templates.FS, "signin.gohtml", "tailwind.gohtml"))
 
@@ -53,6 +60,7 @@ func main() {
 	r.Get("/signin", usersC.SignIn)
 	r.Post("/signin", usersC.ProcessSignIn)
 	r.Get("/users/me", usersC.CurrentUser)
+	r.Post("/signout", usersC.ProcessSignOut)
 
 	csrfKey := "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
 	csrfMw := csrf.Protect(
