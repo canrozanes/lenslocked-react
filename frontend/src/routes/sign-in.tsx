@@ -1,16 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Formik, Form, Field } from "formik";
 import { SignupFormData, signIn } from "api/user";
 import { useState } from "react";
+import useUserContext from "auth/user-provider";
 
 export default function SignIn() {
+  const { user, setUser } = useUserContext();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Mutations
   const mutation = useMutation({
     mutationFn: signIn,
-    onSuccess: () => {
+    onSuccess: (res) => {
+      setUser(res.user);
       setIsSubmitting(false);
     },
     onError: (e) => {
@@ -18,6 +21,10 @@ export default function SignIn() {
       setIsSubmitting(false);
     },
   });
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
 
   // computed
   const initialValues: SignupFormData = {

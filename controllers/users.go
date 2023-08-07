@@ -10,7 +10,8 @@ import (
 )
 
 type Users struct {
-	UserService *models.UserService
+	UserService    *models.UserService
+	SessionService *models.SessionService
 }
 
 type userResponse struct {
@@ -44,7 +45,20 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		fmt.Println(err)
+		// TODO: Long term, we should show a warning about not being able to sign the user in.
+		// This is not likely to happen
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "User was created but couldn't be logged in."})
+		return
+	}
+
+	setCookie(w, CookieSession, session.Token)
+
 	json.NewEncoder(w).Encode(userResponse{User: user})
+
 }
 
 func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
@@ -64,35 +78,62 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 
 	user, err := u.UserService.Authenticate(data.Email, data.Password)
 
-	cookie := http.Cookie{
-		Name:  "email",
-		Value: user.Email,
-		Path:  "/",
-	}
-	http.SetCookie(w, &cookie)
-
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Not authorized."})
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+		return
+	}
+
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		fmt.Println(err)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Something went wrong."})
+		return
+	}
+
+	setCookie(w, CookieSession, session.Token)
+
+	json.NewEncoder(w).Encode(userResponse{User: user})
+}
+
+func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	token, err := readCookie(r, CookieSession)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+		return
+	}
+
+	user, err := u.SessionService.User(token)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
 		return
 	}
 
 	json.NewEncoder(w).Encode(userResponse{User: user})
 }
 
-func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	email, err := r.Cookie("email")
-
+func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
+	token, err := readCookie(r, CookieSession)
 	if err != nil {
-		fmt.Println(err.Error())
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "The email cookie could not be read."})
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
 		return
 	}
+	err = u.SessionService.Delete(token)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Couldn't delete token"})
+		return
+	}
+	deleteCookie(w, CookieSession)
 
-	json.NewEncoder(w).Encode(userResponse{User: &models.User{
-		Email: email.Value,
-		ID:    0,
-	}})
+	write.Success(w)
 }

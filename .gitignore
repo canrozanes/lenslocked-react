@@ -267,3 +267,10 @@ TODOs.md
 frontend/.vite
 lenslocked
 #
+
+## Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib

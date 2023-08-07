@@ -4,16 +4,16 @@ let csrfToken = (
   document.getElementsByName("gorilla.csrf.Token")[0] as HTMLMetaElement
 ).content as string;
 
-export default axios.create({
+const instance = axios.create({
   baseURL: "/api",
   headers: { "X-CSRF-Token": csrfToken },
 });
 
-axios.interceptors.response.use(
+instance.interceptors.response.use(
   function (response) {
     // Any status code that lie within the range of 2xx cause this function to trigger
     // Do something with response data
-    return response;
+    return response.data;
   },
   function (error) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
@@ -21,3 +21,5 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export default instance;

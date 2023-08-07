@@ -27,9 +27,14 @@ func getApiRouter(db *sql.DB) chi.Router {
 		DB: db,
 	}
 
+	sessionService := models.SessionService{
+		DB: db,
+	}
+
 	// Setup our controllers
 	usersC := controllers.Users{
-		UserService: &userService,
+		UserService:    &userService,
+		SessionService: &sessionService,
 	}
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +45,7 @@ func getApiRouter(db *sql.DB) chi.Router {
 
 	r.Post("/users", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
+	r.Post("/signout", usersC.ProcessSignOut)
 	r.Get("/users/me", usersC.CurrentUser)
 
 	r.Get("/{resource}", func(w http.ResponseWriter, r *http.Request) {

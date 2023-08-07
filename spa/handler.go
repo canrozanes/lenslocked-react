@@ -49,6 +49,11 @@ func tryReadHtml(efs embed.FS, prefix, requestedPath string, w http.ResponseWrit
 	}
 
 	tpl, err := template.New("index.html").Parse(string(indexHtmlBits))
+	if err != nil {
+		return err
+	}
+
+	tpl, err = tpl.Clone()
 
 	if err != nil {
 		return err
