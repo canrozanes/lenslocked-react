@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/canrozanes/lenslocked/controllers"
+	"github.com/canrozanes/lenslocked/migrations"
 	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/templates"
 	"github.com/canrozanes/lenslocked/views"
@@ -33,10 +34,19 @@ func main() {
 	// Setup a database connection
 	cfg := models.DefaultPostgresConfig()
 	db, err := models.Open(cfg)
+
 	if err != nil {
 		panic(err)
 	}
+
 	defer db.Close()
+
+	// migrations are the folder
+	err = models.MigrateFS(db, migrations.FS, ".")
+
+	if err != nil {
+		panic(err)
+	}
 
 	userService := models.UserService{
 		DB: db,
