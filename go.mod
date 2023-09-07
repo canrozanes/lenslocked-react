@@ -3,13 +3,15 @@ module github.com/canrozanes/lenslocked
 go 1.19
 
 require (
+	github.com/cweill/gotests v1.6.0
 	github.com/go-chi/chi/v5 v5.0.8
+	github.com/gorilla/csrf v1.7.1
 	github.com/jackc/pgx/v4 v4.18.1
-	golang.org/x/crypto v0.11.0
+	github.com/pressly/goose/v3 v3.15.0
+	golang.org/x/crypto v0.10.0
 )
 
 require (
-	github.com/gorilla/csrf v1.7.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.0 // indirect

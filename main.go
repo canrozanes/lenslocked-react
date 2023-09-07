@@ -8,6 +8,7 @@ import (
 
 	"github.com/canrozanes/lenslocked/controllers"
 	customcsrf "github.com/canrozanes/lenslocked/csrf"
+	"github.com/canrozanes/lenslocked/migrations"
 	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/spa"
 	"github.com/go-chi/chi/v5"
@@ -22,7 +23,6 @@ type Resource struct {
 func getApiRouter(db *sql.DB) chi.Router {
 	r := chi.NewRouter()
 
-	// Setup our model services
 	userService := models.UserService{
 		DB: db,
 	}
@@ -74,7 +74,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	defer db.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer db.Close()
+
+	// migrations are the folder
+	err = models.MigrateFS(db, migrations.FS, ".")
+
+	if err != nil {
+		panic(err)
+	}
 
 	r.Mount("/api", getApiRouter(db))
 
