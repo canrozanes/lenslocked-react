@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/canrozanes/lenslocked/context"
+	"github.com/canrozanes/lenslocked/models"
 	"github.com/gorilla/csrf"
 )
 
@@ -32,6 +34,9 @@ func ParseFS(fs fs.FS, patterns ...string) (Template, error) {
 				// This gets updated in the Execute metho"d with access to r
 				return "", fmt.Errorf("csrfField not implemented")
 			},
+			"currentUser": func() (*models.User, error) {
+				return nil, fmt.Errorf("currentUser not implemented")
+			},
 		},
 	)
 	tpl, err := tpl.ParseFS(fs, patterns...)
@@ -45,17 +50,6 @@ func ParseFS(fs fs.FS, patterns ...string) (Template, error) {
 	}, nil
 }
 
-// func Parse(filepath string) (Template, error) {
-// 	tpl, err := template.ParseFiles(filepath)
-// 	if err != nil {
-// 		return Template{}, fmt.Errorf("parsing template: %w", err)
-// 	}
-
-// 	return Template{
-// 		HTMLTpl: tpl,
-// 	}, nil
-// }
-
 func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}) {
 	tpl, err := t.HTMLTpl.Clone()
 	if err != nil {
@@ -68,6 +62,9 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 		template.FuncMap{
 			"csrfField": func() template.HTML {
 				return csrf.TemplateField(r)
+			},
+			"currentUser": func() *models.User {
+				return context.User(r.Context())
 			},
 		},
 	)
