@@ -4,6 +4,7 @@ import Nav from "components/nav";
 import { UserProvider } from "auth/user-provider";
 import { getCsrf } from "api/csrf";
 import { useEffect, useState } from "react";
+import AxiosInterceptor from "hooks/axios-interceptor";
 
 export default function Root() {
   const [isLoading, setIsLoading] = useState(true);
@@ -21,13 +22,16 @@ export default function Root() {
   }, []);
 
   if (isLoading) {
-    return "loading";
+    // TODO
+    return <></>;
   }
 
   return (
     <UserProvider>
       <Nav />
-      <Outlet />
+      <AxiosInterceptor>
+        <Outlet />
+      </AxiosInterceptor>
     </UserProvider>
   );
 }

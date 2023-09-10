@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/canrozanes/lenslocked/context"
 	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/write"
 )
@@ -98,23 +99,7 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	token, err := readCookie(r, CookieSession)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
-		return
-	}
-
-	user, err := u.SessionService.User(token)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
-		return
-	}
+	user := context.User(r.Context())
 
 	json.NewEncoder(w).Encode(userResponse{User: user})
 }
@@ -136,4 +121,43 @@ func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
 	deleteCookie(w, CookieSession)
 
 	write.Success(w)
+}
+
+type UserMiddleware struct {
+	SessionService *models.SessionService
+}
+
+func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, err := readCookie(r, CookieSession)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		user, err := umw.SessionService.User(token)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := context.WithUser(r.Context(), user)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+
+	})
+}
+
+func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := context.User(r.Context())
+
+		if user == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

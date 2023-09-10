@@ -25,8 +25,8 @@ export default function Faq() {
       <div className="px-6">
         <h1 className="py-4 text-4xl semibold tracking-tight">FAQ Page</h1>
         <ul className="grid grid-cols-2 gap-16">
-          {faqs.map((faq) => (
-            <QAPair question={faq.question} answer={faq.answer} />
+          {faqs.map((faq, i) => (
+            <QAPair question={faq.question} answer={faq.answer} key={i} />
           ))}
         </ul>
       </div>

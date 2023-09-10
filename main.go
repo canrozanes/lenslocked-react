@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -35,9 +34,6 @@ func getApiRouter(db *sql.DB) chi.Router {
 		csrf.SameSite(csrf.SameSiteStrictMode),
 	)
 
-	r.Use(csrfMw)
-	r.Use(customcsrf.RefreshCSRFToken)
-
 	userService := models.UserService{
 		DB: db,
 	}
@@ -45,6 +41,14 @@ func getApiRouter(db *sql.DB) chi.Router {
 	sessionService := models.SessionService{
 		DB: db,
 	}
+
+	umw := controllers.UserMiddleware{
+		SessionService: &sessionService,
+	}
+
+	r.Use(csrfMw)
+	r.Use(customcsrf.RefreshCSRFToken)
+	r.Use(umw.SetUser)
 
 	// Setup our controllers
 	usersC := controllers.Users{
@@ -55,7 +59,7 @@ func getApiRouter(db *sql.DB) chi.Router {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{ "message": "bar" }`))
+		w.Write([]byte(`{ "message": "API running" }`))
 	})
 
 	r.Get("/csrf", func(w http.ResponseWriter, r *http.Request) {
@@ -70,22 +74,17 @@ func getApiRouter(db *sql.DB) chi.Router {
 
 		http.SetCookie(w, cookie)
 
+		// TODO: Use a struct
 		w.Write([]byte(`{ "success": "true" }`))
 	})
 
 	r.Post("/users", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
 	r.Post("/signout", usersC.ProcessSignOut)
-	r.Get("/users/me", usersC.CurrentUser)
 
-	r.Get("/{resource}", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		resource := chi.URLParam(r, "resource")
-
-		response := Resource{resource}
-		json.NewEncoder(w).Encode(response)
-
+	r.Route("/users/me", func(r chi.Router) {
+		r.Use(umw.RequireUser)
+		r.Get("/", usersC.CurrentUser)
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -97,18 +96,6 @@ func getApiRouter(db *sql.DB) chi.Router {
 
 func main() {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-	corsMw := handlers.CORS(
-		handlers.AllowCredentials(),
-		handlers.AllowedOriginValidator(
-			func(origin string) bool {
-				return strings.HasPrefix(origin, "http://localhost")
-			},
-		),
-		handlers.AllowedHeaders([]string{"X-Csrf-Token"}),
-		handlers.ExposedHeaders([]string{"X-Csrf-Token"}),
-	)
 
 	cfg := models.DefaultPostgresConfig()
 	db, err := models.Open(cfg)
@@ -131,14 +118,26 @@ func main() {
 		panic(err)
 	}
 
-	api := getApiRouter(db)
+	corsMw := handlers.CORS(
+		handlers.AllowCredentials(),
+		handlers.AllowedOriginValidator(
+			func(origin string) bool {
+				return strings.HasPrefix(origin, "http://localhost")
+			},
+		),
+		handlers.AllowedHeaders([]string{"X-Csrf-Token"}),
+		handlers.ExposedHeaders([]string{"X-Csrf-Token"}),
+	)
 
-	r.Mount("/api", api)
+	r.Use(middleware.Logger)
+	r.Use(corsMw)
+
+	r.Mount("/api", getApiRouter(db))
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
 	r.NotFound(spa.SpaHandler)
 
 	fmt.Println("Starting the server on :3000...")
 
-	http.ListenAndServe(":3000", corsMw(r))
+	http.ListenAndServe(":3000", r)
 }
