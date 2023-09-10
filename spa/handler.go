@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
-
-	"github.com/gorilla/csrf"
 )
 
 var ErrDir = errors.New("path is dir")
@@ -53,21 +51,7 @@ func tryReadHtml(efs embed.FS, prefix, requestedPath string, w http.ResponseWrit
 		return err
 	}
 
-	tpl, err = tpl.Clone()
-
-	if err != nil {
-		return err
-	}
-
-	csrf.Token(r)
-
-	type data struct {
-		CsrfField string
-	}
-
-	d := data{CsrfField: csrf.Token(r)}
-
-	err = tpl.Execute(w, &d)
+	err = tpl.Execute(w, nil)
 
 	return err
 }

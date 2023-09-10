@@ -48,7 +48,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     getMe()
       .then((res) => {
         setUser(res.user);
-        debugger;
         if (res.user) {
           navigate("/", { replace: true });
         }

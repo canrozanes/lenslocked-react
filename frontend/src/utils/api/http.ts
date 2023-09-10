@@ -1,8 +1,6 @@
 import axios from "axios";
 
-let csrfToken = (
-  document.getElementsByName("gorilla.csrf.Token")[0] as HTMLMetaElement
-).content as string;
+let csrfToken = "";
 
 const instance = axios.create({
   baseURL: "/api",
@@ -22,4 +20,31 @@ instance.interceptors.response.use(
   },
 );
 
+instance.interceptors.request.use(
+  function (config) {
+    const token = getCookie("csrf");
+
+    if (token) {
+      config.headers["x-csrf-token"] = token;
+    }
+    return config;
+  },
+  function (error) {
+    return Promise.reject(error);
+  },
+);
+
 export default instance;
+
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+
+  if (!parts) {
+    return;
+  }
+
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift() ?? "";
+  }
+}
