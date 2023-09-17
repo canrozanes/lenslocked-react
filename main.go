@@ -17,10 +17,6 @@ import (
 	"github.com/gorilla/handlers"
 )
 
-type Resource struct {
-	Route string `json:"route"`
-}
-
 func getApiRouter(db *sql.DB) chi.Router {
 	r := chi.NewRouter()
 
