@@ -15,7 +15,12 @@ const AxiosInterceptor = ({ children }: { children: JSX.Element }) => {
     }
 
     function errorInterceptor(error: AxiosError) {
-      if (error.response?.status === 401) {
+      if (
+        // /api/user/me is called on page load, we don't want to redirect if it fails
+        // because otherwise all page loads with unauthenticated users would lead to /signin
+        !error.request.responseURL.endsWith("/api/users/me") &&
+        error.response?.status === 401
+      ) {
         navigate("/signin");
       }
       // Any status codes that falls outside the range of 2xx cause this function to trigger

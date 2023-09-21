@@ -101,7 +101,7 @@ export default function SignIn() {
                 </Link>
               </p>
               <p className="text-xs text-gray-500">
-                <Link to="/reset-pw" className="underline">
+                <Link to="/forgot-pw" className="underline">
                   Forgot your password?
                 </Link>
               </p>

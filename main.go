@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/canrozanes/lenslocked/controllers"
@@ -15,31 +17,82 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/handlers"
+	"github.com/joho/godotenv"
 )
 
-func getApiRouter(db *sql.DB) chi.Router {
+type config struct {
+	PSQL models.PostgresConfig
+	SMTP models.SMTPConfig
+	CSRF struct {
+		Key    string
+		Secure bool
+	}
+	Server struct {
+		Address string
+	}
+
+	CORS struct {
+		Host string
+	}
+}
+
+func loadEnvConfig() (config, error) {
+	var cfg config
+	err := godotenv.Load()
+	if err != nil {
+		return cfg, err
+	}
+
+	// TODO: PSQL
+	cfg.PSQL = models.DefaultPostgresConfig()
+
+	// TODO: SMTP
+	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
+	portStr := os.Getenv("SMTP_PORT")
+	cfg.SMTP.Port, err = strconv.Atoi(portStr)
+	if err != nil {
+		panic(err)
+	}
+	cfg.SMTP.Username = os.Getenv("SMTP_USERNAME")
+	cfg.SMTP.Password = os.Getenv("SMTP_PASSWORD")
+
+	// TODO: CSRF
+	cfg.CSRF.Key = "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
+	cfg.CSRF.Secure = false
+
+	// TODO: Server
+	cfg.Server.Address = ":3000"
+
+	return cfg, nil
+}
+
+func getApiRouter(db *sql.DB, cfg config) chi.Router {
 	r := chi.NewRouter()
 
-	csrfKey := "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
 	csrfErrorHandler := customcsrf.NewErrorHandler()
 	csrfMw := csrf.Protect(
-		[]byte(csrfKey),
-		// TODO: Fix this before deploying
-		csrf.Secure(false),
+		[]byte(cfg.CSRF.Key),
+		csrf.Secure(cfg.CSRF.Secure),
 		csrf.ErrorHandler(csrfErrorHandler),
 		csrf.SameSite(csrf.SameSiteStrictMode),
 	)
 
-	userService := models.UserService{
+	userService := &models.UserService{
 		DB: db,
 	}
 
-	sessionService := models.SessionService{
+	sessionService := &models.SessionService{
 		DB: db,
 	}
+
+	pwResetService := &models.PasswordResetService{
+		DB: db,
+	}
+
+	emailService := models.NewEmailService(cfg.SMTP)
 
 	umw := controllers.UserMiddleware{
-		SessionService: &sessionService,
+		SessionService: sessionService,
 	}
 
 	r.Use(csrfMw)
@@ -48,8 +101,10 @@ func getApiRouter(db *sql.DB) chi.Router {
 
 	// Setup our controllers
 	usersC := controllers.Users{
-		UserService:    &userService,
-		SessionService: &sessionService,
+		UserService:          userService,
+		SessionService:       sessionService,
+		PasswordResetService: pwResetService,
+		EmailService:         emailService,
 	}
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +132,8 @@ func getApiRouter(db *sql.DB) chi.Router {
 	r.Post("/users", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
 	r.Post("/signout", usersC.ProcessSignOut)
+	r.Post("/forgot-pw", usersC.ProcessForgotPassword)
+	r.Post("/reset-pw", usersC.ProcessResetPassword)
 
 	r.Route("/users/me", func(r chi.Router) {
 		r.Use(umw.RequireUser)
@@ -93,8 +150,12 @@ func getApiRouter(db *sql.DB) chi.Router {
 func main() {
 	r := chi.NewRouter()
 
-	cfg := models.DefaultPostgresConfig()
-	db, err := models.Open(cfg)
+	cfg, err := loadEnvConfig()
+	if err != nil {
+		panic(err)
+	}
+	db, err := models.Open(cfg.PSQL)
+
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +179,7 @@ func main() {
 		handlers.AllowCredentials(),
 		handlers.AllowedOriginValidator(
 			func(origin string) bool {
-				return strings.HasPrefix(origin, "http://localhost")
+				return strings.HasPrefix(origin, cfg.CORS.Host)
 			},
 		),
 		handlers.AllowedHeaders([]string{"X-Csrf-Token"}),
@@ -128,12 +189,15 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(corsMw)
 
-	r.Mount("/api", getApiRouter(db))
+	r.Mount("/api", getApiRouter(db, cfg))
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
 	r.NotFound(spa.SpaHandler)
 
-	fmt.Println("Starting the server on :3000...")
+	fmt.Printf("Starting the server on %s...\n", cfg.Server.Address)
+	err = http.ListenAndServe(":3000", r)
 
-	http.ListenAndServe(":3000", r)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -1,7 +1,8 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "models/user";
 import { getMe, signOut } from "api/user";
+import { AxiosError } from "axios";
 
 type UserContext = {
   user: User | null;
@@ -28,6 +29,19 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  useEffect(() => {
+    getMe()
+      .then((res) => {
+        setUser(res.user);
+      })
+      .catch((e: AxiosError) => {
+        console.log(e);
+      })
+      .finally(() => {
+        setIsUserLoading(false);
+      });
+  }, []);
+
   let navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -43,22 +57,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setIsSigningOut(false);
     }
   };
-
-  useEffect(() => {
-    getMe()
-      .then((res) => {
-        setUser(res.user);
-        if (res.user) {
-          navigate("/", { replace: true });
-        }
-      })
-      .catch((e) => {
-        console.log(e);
-      })
-      .finally(() => {
-        setIsUserLoading(false);
-      });
-  }, []);
 
   return (
     <UserContext.Provider

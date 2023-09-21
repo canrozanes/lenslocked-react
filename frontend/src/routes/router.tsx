@@ -7,6 +7,9 @@ import Root from "routes/root";
 import Home from "routes/home";
 import SignUp from "routes/signup";
 import SignIn from "routes/sign-in";
+import ForgotPassword from "routes/forgot-password";
+import ResetPassword from "routes/reset-password";
+import RequireAuth from "auth/require-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 export const router = createBrowserRouter([
@@ -15,14 +18,29 @@ export const router = createBrowserRouter([
     element: <Root />,
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <Home /> },
+      {
+        index: true,
+        element: (
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        ),
+      },
       {
         path: "contact",
-        element: <Contact />,
+        element: (
+          <RequireAuth>
+            <Contact />
+          </RequireAuth>
+        ),
       },
       {
         path: "faq",
-        element: <Faq />,
+        element: (
+          <RequireAuth>
+            <Faq />
+          </RequireAuth>
+        ),
       },
       {
         path: "signup",
@@ -31,6 +49,14 @@ export const router = createBrowserRouter([
       {
         path: "signin",
         element: <SignIn />,
+      },
+      {
+        path: "forgot-pw",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "reset-pw",
+        element: <ResetPassword />,
       },
       {
         path: "*",

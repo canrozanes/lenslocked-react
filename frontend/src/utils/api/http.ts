@@ -23,7 +23,6 @@ export default instance;
 function getCookie(name: string) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-
   if (!parts) {
     return;
   }
