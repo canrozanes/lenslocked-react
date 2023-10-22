@@ -4,10 +4,13 @@ import { Formik, Form, Field } from "formik";
 import { SignupFormData, signIn } from "api/user";
 import { useState } from "react";
 import useUserContext from "auth/user-provider";
+import useAlert from "alerts/alert-context";
+import { AxiosError } from "axios";
 
 export default function SignIn() {
   const { user, setUser } = useUserContext();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { setAlert } = useAlert();
 
   // Mutations
   const mutation = useMutation({
@@ -16,8 +19,12 @@ export default function SignIn() {
       setUser(res.user);
       setIsSubmitting(false);
     },
-    onError: (e) => {
-      console.log(e);
+    onError: (e: AxiosError<{ data: string }>) => {
+      if (e.response?.status === 401) {
+        setAlert("invalid email/password");
+      } else {
+        setAlert("Something went wrong please try again");
+      }
       setIsSubmitting(false);
     },
   });

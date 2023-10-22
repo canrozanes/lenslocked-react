@@ -5,6 +5,8 @@ import { UserProvider } from "auth/user-provider";
 import { getCsrf } from "api/csrf";
 import { useEffect, useState } from "react";
 import AxiosInterceptor from "hooks/axios-interceptor";
+import { AlertProvider } from "alerts/alert-context";
+import Alert from "alerts/alert";
 
 export default function Root() {
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +32,10 @@ export default function Root() {
     <UserProvider>
       <Nav />
       <AxiosInterceptor>
-        <Outlet />
+        <AlertProvider>
+          <Alert />
+          <Outlet />
+        </AlertProvider>
       </AxiosInterceptor>
     </UserProvider>
   );

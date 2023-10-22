@@ -4,10 +4,13 @@ import { Formik, Form, Field } from "formik";
 import { SignupFormData, signUp } from "api/user";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { AxiosError } from "axios";
+import useAlert from "alerts/alert-context";
 
 export default function SignUp() {
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { setAlert } = useAlert();
 
   // Mutations
   const { mutate } = useMutation({
@@ -15,7 +18,12 @@ export default function SignUp() {
     onSuccess: () => {
       setIsSubmitting(false);
     },
-    onError: () => {},
+    onError: (e: AxiosError) => {
+      if (e.response?.status === 409) {
+        setAlert("This email is already taken, please use another email");
+      }
+      setIsSubmitting(false);
+    },
   });
 
   // computed
@@ -33,6 +41,7 @@ export default function SignUp() {
         <Formik
           initialValues={initialValues}
           onSubmit={(values) => {
+            setAlert("");
             setIsSubmitting(true);
             mutate(values);
           }}

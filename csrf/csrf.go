@@ -1,10 +1,10 @@
 package customcsrf
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/canrozanes/lenslocked/write"
+	"github.com/canrozanes/lenslocked/errors"
 	"github.com/gorilla/csrf"
 )
 
@@ -13,8 +13,8 @@ type ErrorHandler struct{}
 func (c *ErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusForbidden)
 	err := csrf.FailureReason(r)
-
-	json.NewEncoder(w).Encode(&write.ErrorResponse{Error: err.Error()})
+	fmt.Println(err.Error())
+	errors.WriteErrorResponse(w, err)
 }
 
 func NewErrorHandler() *ErrorHandler {

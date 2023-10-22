@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/canrozanes/lenslocked/context"
+	"github.com/canrozanes/lenslocked/errors"
 	"github.com/canrozanes/lenslocked/models"
 	"github.com/canrozanes/lenslocked/write"
 )
@@ -34,7 +35,7 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Something went wrong."})
+		errors.WriteErrorResponse(w, err)
 
 		return
 	}
@@ -42,10 +43,14 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	user, err := u.UserService.Create(data.Email, data.Password)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		if errors.Is(err, models.ErrEmailTaken) {
+			err = errors.Public(err, "That email address is already associated with an account.")
+			w.WriteHeader(http.StatusConflict) // 409
+		} else {
+			w.WriteHeader(http.StatusBadRequest) // 500
+		}
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Something went wrong."})
-
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -55,7 +60,9 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 		// TODO: Long term, we should show a warning about not being able to sign the user in.
 		// This is not likely to happen
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "User was created but couldn't be logged in."})
+		err = errors.Public(err, "User was created but couldn't be logged in.")
+		errors.WriteErrorResponse(w, err)
+
 		return
 	}
 
@@ -76,7 +83,7 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Something went wrong."})
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -85,14 +92,16 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+		err = errors.Public(err, "Invalid email/password")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
 	session, err := u.SessionService.Create(user.ID)
 	if err != nil {
 		fmt.Println(err)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Something went wrong."})
+		w.WriteHeader(http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -111,14 +120,16 @@ func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
 	token, err := readCookie(r, CookieSession)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+		err = errors.Public(err, "No signed in user found.")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 	err = u.SessionService.Delete(token)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Couldn't delete token"})
+		err = errors.Public(err, "Couldn't delete token")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 	deleteCookie(w, CookieSession)
@@ -136,17 +147,18 @@ func (u Users) ProcessForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Request is missing email."})
+		err = errors.Public(err, "Request is missing email.")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
-	fmt.Println(data.Email)
 	pwReset, err := u.PasswordResetService.Create(data.Email)
 	if err != nil {
 		// TODO: Handle other cases in the future. For instance, if a user does not exist with that email address.
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Couldn't find the user"})
+		err = errors.Public(err, "Couldn't find the user")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 	vals := url.Values{
@@ -157,7 +169,8 @@ func (u Users) ProcessForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Couldn't send the email"})
+		err = errors.Public(err, "Couldn't send the email")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 	// Don't render the reset token here! We need the user to confirm they have
@@ -187,7 +200,6 @@ func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
-
 	})
 }
 
@@ -197,7 +209,9 @@ func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
 
 		if user == nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "No signed in user found."})
+			// TODO: Public requires an error. But we don't have an error here so we create a dummy one
+			err := errors.Public(errors.New(""), "No signed in user found.")
+			errors.WriteErrorResponse(w, err)
 			return
 		}
 
@@ -219,7 +233,8 @@ func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err.Error())
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Request is missing token or password."})
+		err = errors.Public(err, "Request is missing token or password.")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -228,7 +243,8 @@ func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		// TODO: Distinguish between server errors and invalid token errors.
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Token is wrong."})
+		err = errors.Public(err, "Token is wrong.")
+		errors.WriteErrorResponse(w, err)
 		return
 
 	}
@@ -238,7 +254,8 @@ func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Token is wrong."})
+		err = errors.Public(err, "Token is wrong.")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -247,7 +264,8 @@ func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
 	session, err := u.SessionService.Create(user.ID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(&write.ErrorResponse{Error: "Password Reset but login failed."})
+		err = errors.Public(err, "Password Reset but login failed.")
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 	setCookie(w, CookieSession, session.Token)
