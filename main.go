@@ -94,6 +94,10 @@ func main() {
 		DB: db,
 	}
 
+	galleryService := &models.GalleryService{
+		DB: db,
+	}
+
 	emailService := models.NewEmailService(cfg.SMTP)
 
 	umw := controllers.UserMiddleware{
@@ -136,6 +140,14 @@ func main() {
 		"reset-pw.gohtml", "tailwind.gohtml",
 	))
 
+	galleriesC := controllers.Galleries{
+		GalleryService: galleryService,
+	}
+	galleriesC.Templates.New = views.Must(views.ParseFS(
+		templates.FS,
+		"galleries/new.gohtml", "tailwind.gohtml",
+	))
+
 	r.Get("/", controllers.StaticHandler(views.Must(
 		views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
 
@@ -162,6 +174,8 @@ func main() {
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
+
+	r.Get("/galleries/new", galleriesC.New)
 
 	fmt.Printf("Starting the server on %s...\n", cfg.Server.Address)
 	err = http.ListenAndServe(":3000", r)
