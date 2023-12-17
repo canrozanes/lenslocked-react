@@ -107,6 +107,7 @@ func main() {
 	csrfMw := csrf.Protect(
 		[]byte(cfg.CSRF.Key),
 		csrf.Secure(cfg.CSRF.Secure),
+		csrf.Path("/"),
 	)
 
 	// Setup our router
@@ -148,6 +149,21 @@ func main() {
 		"galleries/new.gohtml", "tailwind.gohtml",
 	))
 
+	galleriesC.Templates.Edit = views.Must(views.ParseFS(
+		templates.FS,
+		"galleries/edit.gohtml", "tailwind.gohtml",
+	))
+
+	galleriesC.Templates.Index = views.Must(views.ParseFS(
+		templates.FS,
+		"galleries/index.gohtml", "tailwind.gohtml",
+	))
+
+	galleriesC.Templates.Show = views.Must(views.ParseFS(
+		templates.FS,
+		"galleries/show.gohtml", "tailwind.gohtml",
+	))
+
 	r.Get("/", controllers.StaticHandler(views.Must(
 		views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
 
@@ -171,11 +187,22 @@ func main() {
 	r.Get("/reset-pw", usersC.ResetPassword)
 	r.Post("/reset-pw", usersC.ProcessResetPassword)
 
+	r.Route("/galleries", func(r chi.Router) {
+		r.Get("/{id}", galleriesC.Show)
+		r.Group(func(r chi.Router) {
+			r.Use(umw.RequireUser)
+			r.Get("/new", galleriesC.New)
+			r.Get("/", galleriesC.Index)
+			r.Post("/", galleriesC.Create)
+			r.Get("/{id}/edit", galleriesC.Edit)
+			r.Post("/{id}", galleriesC.Update)
+			r.Post("/{id}/delete", galleriesC.Delete)
+		})
+	})
+
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
-
-	r.Get("/galleries/new", galleriesC.New)
 
 	fmt.Printf("Starting the server on %s...\n", cfg.Server.Address)
 	err = http.ListenAndServe(":3000", r)

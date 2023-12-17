@@ -1,9 +1,9 @@
 {{template "header" .}}
 <div class="p-8 w-full">
   <h1 class="pt-4 pb-8 text-3xl font-bold text-gray-800">
-    Create a new Gallery
+    Edit your Gallery
   </h1>
-  <form action="/galleries" method="post">
+  <form action="/galleries/{{.ID}}" method="post">
     <div class="hidden">
       {{csrfField}}
     </div>
@@ -44,9 +44,34 @@
           text-lg
         "
       >
-        Create
+        Update
       </button>
     </div>
   </form>
+  <!-- Danger Actions -->
+  <div class="py-4">
+    <h2>Dangerous Actions</h2>
+    <form action="/galleries/{{.ID}}/delete" method="post"
+      onsubmit="return confirm('Do you really want to delete this gallery?');">
+      <div class="hidden">
+        {{csrfField}}
+      </div>
+      <button
+        type="submit"
+        class="
+          py-2
+          px-8
+          bg-red-600
+          hover:bg-red-700
+          text-white
+          rounded
+          font-bold
+          text-lg
+        "
+      >
+        Delete
+      </button>
+    </form>
+  </div>
 </div>
 {{template "footer" .}}
