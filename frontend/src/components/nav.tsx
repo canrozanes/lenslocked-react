@@ -7,7 +7,7 @@ export default function Nav() {
     <header className="bg-gradient-to-r from-blue-800 to-indigo-800 text-white">
       <nav className="px-8 py-6 flex items-center space-x-12">
         <div className="text-4xl font-serif">Lenslocked</div>
-        <div className="flex-grow">
+        <div className="">
           <NavLink
             className="text-lg font-semibold hover:text-blue-100 pr-8"
             to="/"
@@ -27,6 +27,19 @@ export default function Nav() {
             FAQ
           </NavLink>
         </div>
+        {user ? (
+          <div className="flex-grow flex flex-row-reverse">
+            <NavLink
+              className="text-lg font-semibold hover:text-blue-100 pr-8"
+              to="/galleries"
+            >
+              My Galleries
+            </NavLink>
+          </div>
+        ) : (
+          <div className="flex-grow"></div>
+        )}
+
         <div className="space-x-4">
           {user ? (
             <button onClick={handleSignOut} disabled={isSigningOut}>

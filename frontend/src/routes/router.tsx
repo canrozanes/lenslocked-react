@@ -10,6 +10,10 @@ import SignIn from "routes/sign-in";
 import ForgotPassword from "routes/forgot-password";
 import ResetPassword from "routes/reset-password";
 import RequireAuth from "auth/require-auth";
+import GalleriesNew from "routes/galleries/new";
+import GalleriesEdit from "routes/galleries/edit";
+import GalleriesIndex from "routes/galleries";
+import ShowGallery from "routes/galleries/show";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 export const router = createBrowserRouter([
@@ -57,6 +61,38 @@ export const router = createBrowserRouter([
       {
         path: "reset-pw",
         element: <ResetPassword />,
+      },
+      {
+        path: "/galleries",
+        element: (
+          <RequireAuth>
+            <GalleriesIndex />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/galleries/:id",
+        element: (
+          <RequireAuth>
+            <ShowGallery />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/galleries/new",
+        element: (
+          <RequireAuth>
+            <GalleriesNew />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/galleries/:id/edit",
+        element: (
+          <RequireAuth>
+            <GalleriesEdit />
+          </RequireAuth>
+        ),
       },
       {
         path: "*",

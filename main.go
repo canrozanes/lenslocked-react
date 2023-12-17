@@ -107,6 +107,14 @@ func getApiRouter(db *sql.DB, cfg config) chi.Router {
 		EmailService:         emailService,
 	}
 
+	galleryService := &models.GalleryService{
+		DB: db,
+	}
+
+	galleriesC := controllers.Galleries{
+		GalleryService: galleryService,
+	}
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -138,6 +146,17 @@ func getApiRouter(db *sql.DB, cfg config) chi.Router {
 	r.Route("/users/me", func(r chi.Router) {
 		r.Use(umw.RequireUser)
 		r.Get("/", usersC.CurrentUser)
+	})
+
+	r.Route("/galleries", func(r chi.Router) {
+		r.Get("/{id}", galleriesC.GetGallery) // used to be called Show
+		r.Group(func(r chi.Router) {
+			r.Use(umw.RequireUser)
+			r.Get("/", galleriesC.GetAllGalleries)
+			r.Post("/", galleriesC.Create)
+			r.Post("/{id}", galleriesC.Update)
+			r.Post("/{id}/delete", galleriesC.Delete)
+		})
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

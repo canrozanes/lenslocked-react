@@ -6,7 +6,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   let location = useLocation();
 
   if (isUserLoading) {
-    return <p>TODO: Loading...</p>;
+    return <p>Loading...</p>;
   }
 
   if (!user) {

@@ -225,6 +225,8 @@ func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
 		Token    string
 		Password string
 	}
+
+	// These two lines below seem unnecesarry
 	data.Token = r.FormValue("token")
 	data.Password = r.FormValue("password")
 

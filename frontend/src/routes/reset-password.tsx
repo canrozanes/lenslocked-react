@@ -17,7 +17,6 @@ export default function ResetPassword() {
   const mutation = useMutation({
     mutationFn: resetPassword,
     onSuccess: () => {
-      debugger;
       setIsPasswordResetSuccess(true);
       setIsSubmitting(false);
     },
@@ -31,7 +30,6 @@ export default function ResetPassword() {
     queryFn: getMe,
     enabled: isPasswordResetSuccess,
     onSuccess: (res) => {
-      debugger;
       setUser(res.user);
     },
     onError: () => {

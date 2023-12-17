@@ -274,3 +274,5 @@ lenslocked
 *.dll
 *.so
 *.dylib
+
+.vite
