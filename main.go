@@ -10,9 +10,9 @@ import (
 
 	"github.com/canrozanes/lenslocked/controllers"
 	customcsrf "github.com/canrozanes/lenslocked/csrf"
+	"github.com/canrozanes/lenslocked/frontend"
 	"github.com/canrozanes/lenslocked/migrations"
 	"github.com/canrozanes/lenslocked/models"
-	"github.com/canrozanes/lenslocked/spa"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/csrf"
@@ -211,7 +211,7 @@ func main() {
 	r.Mount("/api", getApiRouter(db, cfg))
 
 	// we want all routes besides /api to go to the SPA, hence we use the NotFound handler
-	r.NotFound(spa.SpaHandler)
+	r.NotFound(frontend.SpaHandler)
 
 	fmt.Printf("Starting the server on %s...\n", cfg.Server.Address)
 	err = http.ListenAndServe(":3000", r)

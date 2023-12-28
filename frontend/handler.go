@@ -1,4 +1,4 @@
-package spa
+package frontend
 
 import (
 	"embed"

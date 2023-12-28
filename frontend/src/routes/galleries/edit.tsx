@@ -37,6 +37,7 @@ export default function GalleriesEdit() {
       setAlert("Gallery successfully deleted");
     },
     onError: (e: AxiosError) => {
+      console.error(e);
       setAlert("Something went wrong. Please try again");
 
       setIsSubmitting(false);
@@ -47,7 +48,6 @@ export default function GalleriesEdit() {
     mutationFn: deleteGallery,
     onSuccess: () => {
       setIsSubmitting(false);
-      debugger;
       navigate("/galleries");
       setAlert("Gallery successfully deleted");
       queryClient.invalidateQueries({ queryKey: ["galleries"] });

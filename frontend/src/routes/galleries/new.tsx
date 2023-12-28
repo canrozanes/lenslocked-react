@@ -19,6 +19,7 @@ export default function New() {
       navigate(`/galleries/${res.gallery.id}/edit`);
     },
     onError: (e: AxiosError) => {
+      console.error(e);
       setAlert("Something went wrong. Please try again");
 
       setIsSubmitting(false);
