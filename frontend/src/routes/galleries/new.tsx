@@ -14,9 +14,9 @@ export default function New() {
   // Mutations
   const { mutate } = useMutation({
     mutationFn: createGallery,
-    onSuccess: (res: GalleryResponse) => {
+    onSuccess: (_: GalleryResponse) => {
       setIsSubmitting(false);
-      navigate(`/galleries/${res.gallery.id}/edit`);
+      navigate("/galleries");
     },
     onError: (e: AxiosError) => {
       console.error(e);

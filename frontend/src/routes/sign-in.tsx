@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Formik, Form, Field } from "formik";
 import { SignupFormData, signIn } from "api/user";
 import { useState } from "react";
@@ -11,6 +11,7 @@ export default function SignIn() {
   const { user, setUser } = useUserContext();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { setAlert } = useAlert();
+  const navigate = useNavigate();
 
   // Mutations
   const mutation = useMutation({
@@ -18,6 +19,7 @@ export default function SignIn() {
     onSuccess: (res) => {
       setUser(res.user);
       setIsSubmitting(false);
+      navigate("/galleries");
     },
     onError: (e: AxiosError<{ data: string }>) => {
       if (e.response?.status === 401) {

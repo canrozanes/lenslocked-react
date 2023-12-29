@@ -55,7 +55,6 @@ export default function GalleriesTable({ galleries }: GalleriesTableProps) {
                 Edit
               </NavLink>
               <button
-                type="submit"
                 className="py-1 px-2 bg-red-100 hover:bg-red-200 rounded border border-red-600 text-xs text-red-600"
                 onClick={() => {
                   setAlert("");

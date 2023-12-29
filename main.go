@@ -150,12 +150,15 @@ func getApiRouter(db *sql.DB, cfg config) chi.Router {
 
 	r.Route("/galleries", func(r chi.Router) {
 		r.Get("/{id}", galleriesC.GetGallery) // used to be called Show
+		r.Get("/{id}/images/{filename}", galleriesC.Image)
 		r.Group(func(r chi.Router) {
 			r.Use(umw.RequireUser)
 			r.Get("/", galleriesC.GetAllGalleries)
 			r.Post("/", galleriesC.Create)
 			r.Post("/{id}", galleriesC.Update)
 			r.Post("/{id}/delete", galleriesC.Delete)
+			r.Post("/{id}/images/{filename}/delete", galleriesC.DeleteImage)
+			r.Post("/{id}/images", galleriesC.UploadImage)
 		})
 	})
 

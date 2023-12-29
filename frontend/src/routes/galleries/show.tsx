@@ -30,9 +30,14 @@ export default function ShowGallery() {
       </h1>
       <div className="columns-4 gap-4 space-y-4">
         {gallery?.images?.map((image) => (
-          <div>
-            <a href={image}>
-              <img className="w-full" src={image} />
+          <div className="h-min w-full">
+            <a
+              href={`/api/galleries/${image.gallery_id}/images/${image.filename_escaped}`}
+            >
+              <img
+                className="w-full"
+                src={`/api/galleries/${image.gallery_id}/images/${image.filename_escaped}`}
+              />
             </a>
           </div>
         ))}

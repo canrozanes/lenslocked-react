@@ -3,8 +3,9 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
+	"net/url"
+	"path/filepath"
 	"strconv"
 
 	"github.com/canrozanes/lenslocked/context"
@@ -129,12 +130,18 @@ func (g Galleries) GetGallery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type Image struct {
+		GalleryID       int    `json:"gallery_id"`
+		Filename        string `json:"filename"`
+		FilenameEscaped string `json:"filename_escaped"`
+	}
+
 	// TODO Delete this when we implemented images
 	type Gallery struct {
-		ID     int      `json:"id"`
-		Title  string   `json:"title"`
-		Images []string `json:"images"`
-		UserId int      `json:"user_id"`
+		ID     int     `json:"id"`
+		Title  string  `json:"title"`
+		Images []Image `json:"images"`
+		UserId int     `json:"user_id"`
 	}
 
 	type galleryResponse struct {
@@ -147,13 +154,44 @@ func (g Galleries) GetGallery(w http.ResponseWriter, r *http.Request) {
 		UserId: gallery.UserID,
 	}
 
-	for i := 0; i < 20; i++ {
-		w, h := rand.Intn(500)+200, rand.Intn(500)+200
-		catImageURL := fmt.Sprintf("https://placehold.co/%dx%d", w, h)
-		data.Images = append(data.Images, catImageURL)
+	images, err := g.GalleryService.Images(gallery.ID)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, fmt.Errorf("Something went wrong"))
+		return
+	}
+
+	for _, image := range images {
+		data.Images = append(data.Images, Image{
+			GalleryID:       image.GalleryID,
+			Filename:        image.Filename,
+			FilenameEscaped: url.PathEscape(image.Filename),
+		})
 	}
 
 	json.NewEncoder(w).Encode(galleryResponse{Gallery: data})
+}
+
+func (g Galleries) Image(w http.ResponseWriter, r *http.Request) {
+	filename := g.filename(w, r)
+	galleryID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusNotFound)
+		return
+	}
+
+	image, err := g.GalleryService.Image(galleryID, filename)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			http.Error(w, "Image not found", http.StatusNotFound)
+			return
+		}
+		fmt.Println(err)
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+	http.ServeFile(w, r, image.Path)
 }
 
 func (g Galleries) Delete(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +208,62 @@ func (g Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	write.Success(w)
+}
 
+func (g Galleries) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	filename := g.filename(w, r)
+	gallery, err := g.galleryByID(w, r, userMustOwnGallery)
+	if err != nil {
+		return
+	}
+	err = g.GalleryService.DeleteImage(gallery.ID, filename)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, fmt.Errorf("something went wrong"))
+		return
+	}
+	write.Success(w)
+}
+
+func (g Galleries) UploadImage(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.galleryByID(w, r, userMustOwnGallery)
+	if err != nil {
+		return
+	}
+
+	err = r.ParseMultipartForm(5 << 20) // 5mb
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, fmt.Errorf("something went wrong"))
+		return
+	}
+	fileHeaders := r.MultipartForm.File["files"]
+	for _, fileHeader := range fileHeaders {
+		file, err := fileHeader.Open()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			errors.WriteErrorResponse(w, fmt.Errorf("something went wrong"))
+			return
+		}
+		defer file.Close()
+
+		err = g.GalleryService.CreateImage(gallery.ID, fileHeader.Filename, file)
+		if err != nil {
+			// Add some extra error handling.
+			var fileErr models.FileError
+			if errors.As(err, &fileErr) {
+				msg := fmt.Sprintf("%v has an invalid content type or extension. Only png, gif, and jpg files can be uploaded.", fileHeader.Filename)
+				w.WriteHeader(http.StatusInternalServerError)
+				errors.WriteErrorResponse(w, fmt.Errorf(msg))
+				return
+			}
+			fmt.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			errors.WriteErrorResponse(w, fmt.Errorf("something went wrong"))
+			return
+		}
+	}
+	write.Success(w)
 }
 
 // 1. Define the galleryOpt type, which is really a function
@@ -208,6 +301,12 @@ func (g Galleries) galleryByID(w http.ResponseWriter, r *http.Request, opts ...g
 		}
 	}
 	return gallery, nil
+}
+
+func (g Galleries) filename(w http.ResponseWriter, r *http.Request) string {
+	filename := chi.URLParam(r, "filename")
+	filename = filepath.Base(filename)
+	return filename
 }
 
 func userMustOwnGallery(w http.ResponseWriter, r *http.Request, gallery *models.Gallery) error {
