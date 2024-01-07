@@ -43,25 +43,33 @@ func loadEnvConfig() (config, error) {
 		return cfg, err
 	}
 
-	// TODO: PSQL
-	cfg.PSQL = models.DefaultPostgresConfig()
+	cfg.PSQL = models.PostgresConfig{
+		Host:     os.Getenv("PSQL_HOST"),
+		Port:     os.Getenv("PSQL_PORT"),
+		User:     os.Getenv("PSQL_USER"),
+		Password: os.Getenv("PSQL_PASSWORD"),
+		Database: os.Getenv("PSQL_DATABASE"),
+		SSLMode:  os.Getenv("PSQL_SSLMODE"),
+	}
 
-	// TODO: SMTP
+	if cfg.PSQL.Host == "" && cfg.PSQL.Port == "" {
+		return cfg, fmt.Errorf("No PSQL Config provided.")
+	}
+
 	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
 	portStr := os.Getenv("SMTP_PORT")
 	cfg.SMTP.Port, err = strconv.Atoi(portStr)
 	if err != nil {
-		panic(err)
+		return cfg, err
 	}
+
 	cfg.SMTP.Username = os.Getenv("SMTP_USERNAME")
 	cfg.SMTP.Password = os.Getenv("SMTP_PASSWORD")
 
-	// TODO: CSRF
-	cfg.CSRF.Key = "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
-	cfg.CSRF.Secure = false
+	cfg.CSRF.Key = os.Getenv("CSRF_KEY")
+	cfg.CSRF.Secure = os.Getenv("CSRF_SECURE") == "true"
 
-	// TODO: Server
-	cfg.Server.Address = ":3000"
+	cfg.Server.Address = os.Getenv("SERVER_ADDRESS")
 
 	return cfg, nil
 }
@@ -170,22 +178,22 @@ func getApiRouter(db *sql.DB, cfg config) chi.Router {
 }
 
 func main() {
-	r := chi.NewRouter()
-
 	cfg, err := loadEnvConfig()
 	if err != nil {
 		panic(err)
 	}
-	db, err := models.Open(cfg.PSQL)
 
+	err = run(cfg)
 	if err != nil {
 		panic(err)
 	}
+}
 
-	defer db.Close()
+func run(cfg config) error {
+	db, err := models.Open(cfg.PSQL)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer db.Close()
@@ -194,7 +202,7 @@ func main() {
 	err = models.MigrateFS(db, migrations.FS, ".")
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	corsMw := handlers.CORS(
@@ -208,6 +216,7 @@ func main() {
 		handlers.ExposedHeaders([]string{"X-Csrf-Token"}),
 	)
 
+	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(corsMw)
 
@@ -220,6 +229,8 @@ func main() {
 	err = http.ListenAndServe(":3000", r)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
