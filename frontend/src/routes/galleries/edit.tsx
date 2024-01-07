@@ -100,7 +100,6 @@ export default function GalleriesEdit() {
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    debugger;
     const files = e.target.files;
     setImages(files);
   };
@@ -154,7 +153,6 @@ export default function GalleriesEdit() {
             <button
               className="py-2 px-8 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded"
               onClick={() => {
-                debugger;
                 if (!images) {
                   return;
                 }
